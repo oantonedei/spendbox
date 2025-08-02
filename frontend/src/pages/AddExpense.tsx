@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Paper,
@@ -32,10 +32,13 @@ import {
   School,
   SportsEsports
 } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 const AddExpense: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const mode = searchParams.get('mode') || 'text';
+  
   const [formData, setFormData] = useState({
     description: '',
     amount: '',
@@ -46,6 +49,7 @@ const AddExpense: React.FC = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
 
   const categories = [
     { value: 'food', label: 'Food & Dining', icon: <Restaurant /> },
@@ -57,6 +61,27 @@ const AddExpense: React.FC = () => {
     { value: 'education', label: 'Education', icon: <School /> },
     { value: 'other', label: 'Other', icon: <Receipt /> }
   ];
+
+  // Handle different modes on component mount
+  useEffect(() => {
+    switch (mode) {
+      case 'camera':
+        handleCameraCapture();
+        break;
+      case 'voice':
+        handleVoiceInput();
+        break;
+      case 'scan':
+        handleScanReceipt();
+        break;
+      case 'quick':
+        handleQuickAdd();
+        break;
+      default:
+        // Text mode - do nothing, just show the form
+        break;
+    }
+  }, [mode]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({
@@ -106,6 +131,10 @@ const AddExpense: React.FC = () => {
   const handleCameraCapture = () => {
     // TODO: Implement camera capture and OCR
     console.log('Camera capture clicked');
+    setFormData({
+      ...formData,
+      description: 'Photo captured - please review and edit details'
+    });
   };
 
   const handleVoiceInput = () => {
@@ -119,7 +148,8 @@ const AddExpense: React.FC = () => {
         setIsRecording(false);
         setFormData({
           ...formData,
-          description: 'Voice input: Grocery shopping at Walmart'
+          description: 'Voice input: Grocery shopping at Walmart',
+          amount: '45.67'
         });
       }, 3000);
     } else {
@@ -128,9 +158,50 @@ const AddExpense: React.FC = () => {
     }
   };
 
+  const handleScanReceipt = () => {
+    setIsScanning(true);
+    // TODO: Implement receipt scanning and OCR
+    console.log('Scanning receipt...');
+    
+    // Simulate receipt scanning
+    setTimeout(() => {
+      setIsScanning(false);
+      setFormData({
+        ...formData,
+        description: 'Receipt scanned - Grocery Store',
+        amount: '23.45',
+        category: 'food'
+      });
+    }, 2000);
+  };
+
+  const handleQuickAdd = () => {
+    // Pre-fill with common values for quick entry
+    setFormData({
+      ...formData,
+      description: 'Quick expense',
+      category: 'other'
+    });
+  };
+
   const getCategoryIcon = (categoryValue: string) => {
     const category = categories.find(cat => cat.value === categoryValue);
     return category ? category.icon : <Receipt />;
+  };
+
+  const getModeTitle = () => {
+    switch (mode) {
+      case 'camera':
+        return 'Add Expense - Camera';
+      case 'voice':
+        return 'Add Expense - Voice';
+      case 'scan':
+        return 'Add Expense - Scan Receipt';
+      case 'quick':
+        return 'Add Expense - Quick Add';
+      default:
+        return 'Add Expense';
+    }
   };
 
   return (
@@ -140,9 +211,31 @@ const AddExpense: React.FC = () => {
           <ArrowBack />
         </IconButton>
         <Typography variant="h4">
-          Add Expense
+          {getModeTitle()}
         </Typography>
       </Box>
+
+      {/* Mode-specific alerts */}
+      {mode === 'camera' && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          Camera mode activated. Please take a photo of your receipt.
+        </Alert>
+      )}
+      {mode === 'voice' && isRecording && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          Recording in progress... Speak clearly to capture your expense details.
+        </Alert>
+      )}
+      {mode === 'scan' && isScanning && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          Scanning receipt... Please wait while we extract the information.
+        </Alert>
+      )}
+      {mode === 'quick' && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          Quick add mode. Fill in the essential details to save time.
+        </Alert>
+      )}
 
       <Grid container spacing={3}>
         {/* Main Form */}
@@ -265,6 +358,7 @@ const AddExpense: React.FC = () => {
                 startIcon={<CameraAlt />}
                 onClick={handleCameraCapture}
                 fullWidth
+                disabled={isRecording || isScanning}
               >
                 Take Photo
               </Button>
@@ -275,8 +369,19 @@ const AddExpense: React.FC = () => {
                 onClick={handleVoiceInput}
                 fullWidth
                 color={isRecording ? 'error' : 'primary'}
+                disabled={isScanning}
               >
                 {isRecording ? 'Recording...' : 'Voice Input'}
+              </Button>
+
+              <Button
+                variant="outlined"
+                startIcon={<Receipt />}
+                onClick={handleScanReceipt}
+                fullWidth
+                disabled={isRecording || isScanning}
+              >
+                {isScanning ? 'Scanning...' : 'Scan Receipt'}
               </Button>
             </Box>
 

@@ -28,7 +28,9 @@ import {
   DialogContent,
   DialogActions,
   ListItemButton,
-  Backdrop
+  Backdrop,
+  Fade,
+  Zoom
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -48,7 +50,7 @@ import {
 
 const Layout: React.FC = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [addExpenseModalOpen, setAddExpenseModalOpen] = useState(false);
+  const [addExpenseOverlayOpen, setAddExpenseOverlayOpen] = useState(false);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const navigate = useNavigate();
@@ -65,32 +67,58 @@ const Layout: React.FC = () => {
   const addExpenseOptions = [
     {
       title: 'Camera',
-      description: 'Take a photo of your receipt',
-      icon: <CameraIcon sx={{ fontSize: 32, color: '#6366F1' }} />,
+      description: 'Take a photo',
+      icon: <CameraIcon />,
       action: () => {
-        setAddExpenseModalOpen(false);
-        // TODO: Implement camera functionality
-        console.log('Open camera');
-      }
+        setAddExpenseOverlayOpen(false);
+        navigate('/add-expense?mode=camera');
+      },
+      position: { top: -120, left: 0 }, // Top
+      delay: 0
     },
     {
-      title: 'Text Input',
-      description: 'Manually enter expense details',
-      icon: <EditIcon sx={{ fontSize: 32, color: '#6366F1' }} />,
+      title: 'Text',
+      description: 'Manual entry',
+      icon: <EditIcon />,
       action: () => {
-        setAddExpenseModalOpen(false);
-        navigate('/add-expense');
-      }
+        setAddExpenseOverlayOpen(false);
+        navigate('/add-expense?mode=text');
+      },
+      position: { top: -85, left: -85 }, // Top-left
+      delay: 100
     },
     {
-      title: 'Voice Recording',
-      description: 'Speak your expense details',
-      icon: <MicIcon sx={{ fontSize: 32, color: '#6366F1' }} />,
+      title: 'Voice',
+      description: 'Speak details',
+      icon: <MicIcon />,
       action: () => {
-        setAddExpenseModalOpen(false);
-        // TODO: Implement voice recording functionality
-        console.log('Open voice recording');
-      }
+        setAddExpenseOverlayOpen(false);
+        navigate('/add-expense?mode=voice');
+      },
+      position: { top: 0, left: -120 }, // Left
+      delay: 200
+    },
+    {
+      title: 'Scan',
+      description: 'Scan receipt',
+      icon: <CameraIcon />,
+      action: () => {
+        setAddExpenseOverlayOpen(false);
+        navigate('/add-expense?mode=scan');
+      },
+      position: { top: 85, left: -85 }, // Bottom-left
+      delay: 300
+    },
+    {
+      title: 'Quick',
+      description: 'Quick add',
+      icon: <AddIcon />,
+      action: () => {
+        setAddExpenseOverlayOpen(false);
+        navigate('/add-expense?mode=quick');
+      },
+      position: { top: 120, left: 0 }, // Bottom
+      delay: 400
     }
   ];
 
@@ -119,7 +147,7 @@ const Layout: React.FC = () => {
 
   const handleAddExpenseClick = () => {
     if (isMobile) {
-      setAddExpenseModalOpen(true);
+      setAddExpenseOverlayOpen(true);
     } else {
       navigate('/add-expense');
     }
@@ -431,6 +459,7 @@ const Layout: React.FC = () => {
                 transform: 'scale(1.1)',
               },
               transition: 'all 0.2s ease-in-out',
+              zIndex: theme.zIndex.fab,
             }}
           >
             <AddIcon />
@@ -492,77 +521,90 @@ const Layout: React.FC = () => {
         </Paper>
       )}
 
-      {/* Add Expense Modal - Mobile Only */}
-      <Dialog
-        open={addExpenseModalOpen}
-        onClose={() => setAddExpenseModalOpen(false)}
-        fullScreen={isMobile}
-        maxWidth="sm"
-        fullWidth
-        sx={{
-          '& .MuiDialog-paper': {
-            borderRadius: isMobile ? 0 : 2,
-            margin: isMobile ? 0 : 'auto',
-          },
-        }}
-      >
-        <DialogTitle sx={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center',
-          pb: 1,
-          borderBottom: '1px solid #e5e7eb'
-        }}>
-          <Typography variant="h6" sx={{ fontWeight: 600, color: '#1f2937' }}>
-            Add Expense
-          </Typography>
-          <IconButton
-            onClick={() => setAddExpenseModalOpen(false)}
-            sx={{ color: '#6b7280' }}
+      {/* Animated Add Expense Overlay - Mobile Only */}
+      {isMobile && (
+        <Fade in={addExpenseOverlayOpen} timeout={300}>
+          <Backdrop
+            open={addExpenseOverlayOpen}
+            onClick={() => setAddExpenseOverlayOpen(false)}
+            sx={{
+              zIndex: theme.zIndex.fab + 1,
+              backgroundColor: 'rgba(99, 102, 241, 0.1)',
+              backdropFilter: 'blur(4px)',
+            }}
           >
-            <CloseIcon />
-          </IconButton>
-        </DialogTitle>
-        <DialogContent sx={{ p: 0 }}>
-          <List sx={{ p: 0 }}>
-            {addExpenseOptions.map((option, index) => (
-              <React.Fragment key={option.title}>
-                <ListItem sx={{ p: 0 }}>
-                  <ListItemButton
-                    onClick={option.action}
-                    sx={{
-                      py: 3,
-                      px: 3,
-                      '&:hover': {
-                        bgcolor: 'rgba(99, 102, 241, 0.05)',
-                      },
-                    }}
+            <Box
+              sx={{
+                position: 'fixed',
+                bottom: 80,
+                right: 16,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 2,
+              }}
+            >
+              {/* Option Buttons */}
+              {addExpenseOptions.map((option, index) => (
+                <Zoom
+                  key={option.title}
+                  in={addExpenseOverlayOpen}
+                  timeout={300 + option.delay}
+                  style={{ transitionDelay: `${option.delay}ms` }}
+                >
+                  <Box
+                                         sx={{
+                       position: 'absolute',
+                       ...option.position,
+                       display: 'flex',
+                       flexDirection: 'column',
+                       alignItems: 'center',
+                     }}
                   >
-                    <ListItemIcon sx={{ minWidth: 48, mr: 2 }}>
-                      {option.icon}
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={
-                        <Typography variant="h6" sx={{ fontWeight: 600, color: '#1f2937', mb: 0.5 }}>
-                          {option.title}
-                        </Typography>
-                      }
-                      secondary={
-                        <Typography variant="body2" color="textSecondary">
-                          {option.description}
-                        </Typography>
-                      }
-                    />
-                  </ListItemButton>
-                </ListItem>
-                {index < addExpenseOptions.length - 1 && (
-                  <Divider sx={{ mx: 3 }} />
-                )}
-              </React.Fragment>
-            ))}
-          </List>
-        </DialogContent>
-      </Dialog>
+                                         <Fab
+                       size="medium"
+                       onClick={option.action}
+                       sx={{
+                         background: 'linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%)',
+                         color: 'white',
+                         width: 56,
+                         height: 56,
+                         boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)',
+                         '&:hover': {
+                           background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)',
+                           transform: 'scale(1.1)',
+                           boxShadow: '0 6px 16px rgba(99, 102, 241, 0.4)',
+                         },
+                         transition: 'all 0.2s ease-in-out',
+                       }}
+                     >
+                       {option.icon}
+                     </Fab>
+                  </Box>
+                </Zoom>
+              ))}
+
+              {/* Center Plus Button (always visible) */}
+              <Fab
+                color="primary"
+                aria-label="add expense"
+                onClick={() => setAddExpenseOverlayOpen(false)}
+                sx={{
+                  background: 'linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%)',
+                  '&:hover': {
+                    background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)',
+                    transform: 'scale(1.1)',
+                  },
+                  transition: 'all 0.2s ease-in-out',
+                  zIndex: theme.zIndex.fab + 2,
+                }}
+              >
+                <AddIcon />
+              </Fab>
+            </Box>
+          </Backdrop>
+        </Fade>
+      )}
     </Box>
   );
 };
